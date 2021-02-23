@@ -2,16 +2,21 @@ import numpy as np
 
 class Grid:
     """
-    An implementation of a gridspace to host cellular automata
+    An implementation of a gridspace to host cellular automata using ints to represent states
+    0 empty
     Args:
         - shape: the size of the grid as a tuple 
         - valid states: states the grid is allowed to be comprised of
     """
 
-    def __init__(self,shape : tuple, valid_states = [0,1]):
+    def __init__(self,shape : tuple, actors = 1):
         self._shape = shape
-        self._states=valid_states
-        self._array = np.full(self._shape,self._states[0],dtype=int)
+        self._actors=actors
+        if(type(self._actors) == int):
+            self._actors = [0,self._actors]
+        else:
+            self._actors = [0]+self._actors
+        self._array = np.full(self._shape,0,dtype=int)
 
     def __len__(self):
         return len(self.array)
@@ -57,7 +62,7 @@ class Grid:
         stats about the grid
         """
         rep = " x ".join(list(map(str,self.shape)))+" Grid\n"
-        for s in self._states:
+        for s in self._actors:
             rep+=f"Number of {s} states: {self.count(s)}\n"
         return rep
     
@@ -65,13 +70,13 @@ class Grid:
         """
         Randomly assigns a state to each cell in the grid uniformly
         """
-        self._array = np.random.choice(self._states,self.shape)
+        self._array = np.random.choice(self._actors,self.shape)
 
     def clear(self):
         """
         Resets the grid back to default value
         """
-        self._array = np.full(self._shape,self._states[0],dtype=int)
+        self._array = np.full(self._shape,self._actors[0],dtype=int)
 
     def count(self,state):
         """
