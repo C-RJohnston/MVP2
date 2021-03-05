@@ -46,7 +46,7 @@ class SIRS(CellularAutomata):
         Returns: the number of infected for each measurement
         """
         # first come to equilibrium
-        for _ in range(equilibrate_sweeps+1):
+        for _ in range(equilibrate_sweeps):
             self.sequential_update(self.actors[2])
         infected = np.zeros(measurements)
         # measure the number of infected
