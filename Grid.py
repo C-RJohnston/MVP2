@@ -32,8 +32,8 @@ class Grid:
         Returns:
             row/element
         """
-        return self.array[index]
-    
+        return self.array.__getitem__(index)
+
     def __setitem__(self, index, value):
         """
         sets the row/element of the array at given index.
@@ -41,7 +41,7 @@ class Grid:
             - index: int/tuple specifies the row/element to modify
             -value: array/int new value to set at index
         """
-        self.array[index] = value
+        self.array.__setitem__(index, value)
     
     @property
     def shape(self):

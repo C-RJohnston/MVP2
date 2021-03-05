@@ -52,14 +52,14 @@ class GameOfLife(CellularAutomata):
         self[2, 1] = alive
         self[2, 2] = alive
 
-    def rules(self, x, y, N):
-        if self[x, y]:
-            if N[1] == 2 or N[1] == 3:
+    def rules(self, c, neighbours):
+        if c == self.actors[1]:
+            if neighbours == 2 or neighbours == 3:
                 return self.actors[1]
             else:
                 return self.actors[0]
         else:
-            if N[1] == 3:
+            if neighbours == 3:
                 return self.actors[1]
             else:
                 return self.actors[0]
@@ -74,17 +74,17 @@ class GameOfLife(CellularAutomata):
         end = np.array(self.shape) - 2
         pos = []
         for _ in range(steps):
-            self.update(8)
+            self.update(1)
             x = self.CoM(1, True)
             pos.append(x)
             if np.array_equal(pos[-1], end) and np.array_equal(pos[-2], end):
                 break
         with open("glidercom.txt", 'w') as outfile:
-            out = "position (x,y):\n"
+            out = ''
             for r in pos:
-                out += f"({r[0]},{r[1]})\n"
-            out += "speed:\n"
-            v = (np.linalg.norm(pos[-1]) - np.linalg.norm(pos[0])) / len(pos)
+                out += f"{r[0]},{r[1]}\n"
+            v = np.linalg.norm(pos[0]-pos[-1]) / len(pos)
             out += str(v)
             outfile.write(out)
+
         return v
