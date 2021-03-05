@@ -60,6 +60,7 @@ Graphing
 ![Graph UI 1](graphimage1.png)
 1. choose which plot to display
 2. Plot button. Displays the plot and saves the image
+
 ![Graph UI 2](graphimage2.png)
 3. For deciding which immunity graph to plot. Enter the probabilities chosing as p1,p2,p3
 e.g. 0.5,0.5,0.5
