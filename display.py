@@ -10,6 +10,8 @@ import pickle
 import os.path
 from concurrent.futures import ProcessPoolExecutor, as_completed
 import threading
+import sys
+from scipy.stats import sem
 
 class EntryWithPlaceholder(tk.Entry):
     def __init__(self, master=None, placeholder="PLACEHOLDER", color='grey'):
@@ -36,7 +38,6 @@ class EntryWithPlaceholder(tk.Entry):
     def foc_out(self, *args):
         if not self.get():
             self.put_placeholder()
-
 
 class GoLFrame(tk.Frame):
     def __init__(self, parent, Options, *args, **kwargs):
@@ -93,6 +94,10 @@ class GoLFrame(tk.Frame):
         G.animateCoM(params['fg_colour'], params['bg_colour'], params['steps'], "Game of Life", patches, 1, 1)
 
     def measure(self):
+        """
+        Measure the number of alive cells until they come to equilibrium a given number of times
+        to generate a histogram
+        """
         self.progressbar.grid(column=0, row=9, columnspan=2)
         params = self.O.get_params()
         steps = []
@@ -112,6 +117,7 @@ class GoLFrame(tk.Frame):
         self.progressbar.grid_forget()
         with open('equilibrium.txt', 'w') as outfile:
             outfile.write(','.join(map(str, steps)))
+        sys.exit()
 
     def begin(self):
         params = self.O.get_params()
@@ -218,6 +224,9 @@ class SIRSFrame(tk.Frame):
         S.animate(cols, params['bg_colour'], params['steps'], "SIRS", patches, 2, update_method='s')
 
     def variance_precise(self):
+        """
+        Measure the variance of infections over a short range of p1 [0.2-0.5]
+        """
         self.progressbar.grid(row=7, column=0, columnspan=2)
         self.progressbar['value'] = 0
         params = self.O.get_params()
@@ -262,8 +271,12 @@ class SIRSFrame(tk.Frame):
             out += ','.join(map(str, var))+'\n'
             out += ','.join(map(str, error))
             outfile.write(out)
+        sys.exit()
 
     def measure_infections(self):
+        """
+        Measure the infection population and the variance for constant p2
+        """
         params = self.O.get_params()
         self.progressbar.grid(row=7, column=0, columnspan=2)
         self.progressbar['value'] = 0
@@ -295,8 +308,12 @@ class SIRSFrame(tk.Frame):
         with open("SIRSMeasurements", 'wb') as outfile:
             pickle.dump(data, outfile)
         self.progressbar.grid_forget()
+        sys.exit()
 
     def measure_immune(self):
+        """
+        Measure how the infected fraction changes with increasing immunised population
+        """
         params = self.O.get_params()
         self.progressbar.grid(row=7, column=0, columnspan=2)
         self.progressbar['value'] = 0
@@ -321,10 +338,8 @@ class SIRSFrame(tk.Frame):
                     tasks.append(e.submit(S.measure_infections, 100, params['measurements']))
                 for t in as_completed(tasks):
                     x.append(np.mean(t.result()[0]))
-                x_mean = np.mean(x)
-                infs.append(x_mean)
-                std_dev = np.sqrt(sum(np.array(x)-x_mean)**2/(runs-1))
-                errors.append(std_dev/(runs**0.5))
+                infs.append(np.mean(x))
+                errors.append(sem(x))
         self.progressbar.grid_forget()
 
         with open(f"Immune({p1},{p2},{p3}).txt", 'w') as outfile:
@@ -333,6 +348,7 @@ class SIRSFrame(tk.Frame):
             out += ','.join((map(str, errors)))
 
             outfile.write(out)
+        sys.exit()
 
 
 class OptionsFrame(tk.Frame):
@@ -405,7 +421,7 @@ class GraphFrame(tk.Frame):
         self.graphs = ttk.Combobox(self, values=[], postcommand=self.update_options)
         self.plot_button = ttk.Button(self, text="Plot", command=self.plot)
         self.graphs.bind('<<ComboboxSelected>>', self.showdir)
-        self.dir = EntryWithPlaceholder(self, "Infection data filename...")
+        self.dir = EntryWithPlaceholder(self, "p1,p2,p3...")
         self.dir.configure(width=25)
         self.graphs.grid(row=0, column=0, pady=10)
         self.plot_button.grid(row=2, column=0)
@@ -452,6 +468,9 @@ class GraphFrame(tk.Frame):
         with open("equilibrium.txt", 'r') as infile:
             times = list(map(int, infile.read().split(',')))
         plt.hist(times)
+        plt.xlabel("Count")
+        plt.ylabel("Time to complete (Steps)")
+        plt.title("Number of Steps for Game of Life to Reach Equilibrium")
         plt.savefig('equilibrium.jpg')
         plt.show()
 
@@ -462,6 +481,9 @@ class GraphFrame(tk.Frame):
             xs = [int(p.split(',')[0]) for p in data]
             ys = [int(p.split(',')[1]) for p in data]
         plt.scatter(xs, ys)
+        plt.xlabel("x-distance along grid")
+        plt.ylabel("y-distance along grid")
+        plt.title("Glider Centre-of-Mass")
         plt.show()
 
     def SIRS_heatmap(self):
@@ -471,7 +493,10 @@ class GraphFrame(tk.Frame):
         ys = list(data[0])
         im = [[data[x][y]['val'] for y in ys] for x in xs]
         plt.imshow(im)
-        plt.savefig("SIRS heat map.jpg")
+        plt.xlabel("p1")
+        plt.ylabel("p3")
+        plt.title("SIRS p1-p3 Phase diagram")
+        plt.savefig("SIRS Phase Diagram.jpg")
         plt.show()
 
     def SIRS_contor(self):
@@ -480,7 +505,11 @@ class GraphFrame(tk.Frame):
         xs = list(data)
         ys = list(data[0])
         zs = [[data[x][y]['var'] for y in ys] for x in xs]
-        plt.contour(xs, ys, zs)
+        cs = plt.contour(xs, ys, zs)
+        plt.clabel(cs,inline=1,fontsize=10)
+        plt.xlabel("p1")
+        plt.ylabel("p3")
+        plt.title("SIRS contour")
         plt.savefig("SIRS Contour.jpg")
         plt.show()
 
@@ -490,17 +519,26 @@ class GraphFrame(tk.Frame):
             ys = list(map(float, infile.readline().split(',')))
             error = list(map(float, infile.readline().split(',')))
         plt.errorbar(xs, ys, yerr=error)
+        plt.xlabel("p1")
+        plt.ylabel("Infections variance")
+        plt.title("Variance of infections over p1=[0.2-0.5]")
         plt.savefig("SIRS variance plot.jpg")
         plt.show()
 
     def plot_immunisations(self):
-        filename = self.dir.get()
-        with open(filename,'r') as infile:
+        ps = self.dir.get()
+        with open(f"Immune({ps}).txt",'r') as infile:
             xs = list(map(float, infile.readline().split(',')))
             ys = list(map(float, infile.readline().split(',')))
+            ys = [y/2500 for y in ys]
             error = list(map(float, infile.readline().split(',')))
+            error = [e/2500 for e in error]
         plt.errorbar(xs, ys, yerr=error)
-        plt.savefig("Infections-Immunisation.jpg")
+        plt.xlabel("Fraction of immune population")
+        plt.ylabel("Number of infected")
+        plt.title("Variation of Infections with Immunisation")
+
+        plt.savefig(f"Infections-Immunisation{ps}.jpg")
         plt.show()
 
 
