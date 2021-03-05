@@ -68,7 +68,7 @@ e.g. 0.5,0.5,0.5
 
 Options
 ------
-![Options UI](optionsimage1.png)
+![Options UI](optionsimage.png)
 1. Grid size
 2. Colour of an active cell for Game of Life or susceptible cell for SIRS
 3. Colour of an infected cell in SIRS
